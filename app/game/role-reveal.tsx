@@ -40,12 +40,13 @@ export default function RoleReveal() {
 
     const handleNext = () => {
         haptics.medium();
+        setIsRevealed(false);
+
         if (currentPlayerIndex < players.length - 1) {
             nextPlayer();
         } else {
-            nextPlayer();
-            // Store's nextPlayer handles gamePhase: "playing"
-            router.replace("/game/round");
+            // Navigate to Who Starts screen instead of going straight to game
+            router.replace('/game/who-starts');
         }
     };
 

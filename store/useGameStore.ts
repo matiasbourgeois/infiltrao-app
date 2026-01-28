@@ -1,20 +1,35 @@
 import { create } from "zustand";
-import { GameState, Deck, Player, PlayerRoleString } from "../types/game";
+import { Deck, Player, PlayerRoleString } from "../types/game";
+import { INITIAL_DECKS } from "../data/decks";
 
-interface GameStore extends GameState {
+interface GameState {
+    currentDeck: Deck | null;
+    playerCount: number;
+    impostorCount: number;
+    players: Player[];
+    playerNames: string[];
+    gamePhase: "config" | "reveal" | "playing" | "result";
+    currentPlayerIndex: number;
+    timerSeconds: number;
+    timerDuration: number;
+    winner: "Civiles" | "Impostor" | null;
+    startingPlayerName: string | null;
+
     setDeck: (deck: Deck) => void;
     setPlayerCount: (count: number) => void;
     setImpostorCount: (count: number) => void;
     setPlayerNames: (names: string[]) => void;
-    startGame: () => void;
+    setTimerDuration: (duration: number) => void;
+
+    startGame: (customDecks?: Deck[]) => void;
     nextPlayer: () => void;
     finishReveal: () => void;
+    decrementTimer: () => void;
     setWinner: (winner: "Civiles" | "Impostor") => void;
     resetGame: () => void;
-    decrementTimer: () => void;
 }
 
-export const useGameStore = create<GameStore>((set, get) => ({
+export const useGameStore = create<GameState>((set, get) => ({
     currentDeck: null,
     playerCount: 3,
     impostorCount: 1,
@@ -22,76 +37,56 @@ export const useGameStore = create<GameStore>((set, get) => ({
     playerNames: [],
     gamePhase: "config",
     currentPlayerIndex: 0,
-    timerSeconds: 180, // 3 minutes default
+    timerSeconds: 120, // Default to 2 minutes now
+    timerDuration: 120, // Default to 2 minutes now
     winner: null,
+    startingPlayerName: null,
 
     setDeck: (deck: Deck) => set({ currentDeck: deck }),
     setPlayerCount: (count: number) => set({ playerCount: count }),
     setImpostorCount: (count: number) => set({ impostorCount: count }),
     setPlayerNames: (names: string[]) => set({ playerNames: names }),
+    setTimerDuration: (duration: number) => set({ timerDuration: duration, timerSeconds: duration }),
 
-    startGame: () => {
-        const { currentDeck, playerCount, impostorCount, playerNames } = get();
+    startGame: (customDecks) => {
+        const { currentDeck, playerCount, impostorCount, playerNames, timerDuration } = get();
         if (!currentDeck) return;
 
-        // Create initial roles pool
-        // Handle MIX DECK logic
-        let deckToPlay = currentDeck;
+        // --- WORD SELECTION LOGIC ---
+        let allWords: string[] = [];
 
         if (currentDeck.id === "deck_mix") {
-            // We need to import INITIAL_DECKS here to avoid circular dependency issues if possible, 
-            // or better, rely on the fact that we can access them if they were part of the state. 
-            // Since INITIAL_DECKS is a constant, we can import it.
-            // BUT, `useGameStore` is in `store/`, `INITIAL_DECKS` in `data/`.
-            const { INITIAL_DECKS } = require("../data/decks");
-
-            // Access custom decks from the separate store
-            // We use require to avoid circular dependency if useDeckStore imports useGameStore, etc.
-            // But stores usually don't depend on each other cyclically. 
-            const { useDeckStore } = require("./useDeckStore");
-            const { customDecks } = useDeckStore.getState();
-
-            // Aggregate all words
-            let allWords: string[] = [];
-            INITIAL_DECKS.forEach((d: Deck) => {
-                if (d.id !== "deck_mix") allWords = [...allWords, ...d.words];
+            // Add words from initial decks (excluding the mix deck itself if it were in there)
+            INITIAL_DECKS.forEach((d) => {
+                if (d.id !== "deck_mix") allWords.push(...d.words);
             });
-
-            // Add words from custom decks!
-            if (customDecks && customDecks.length > 0) {
-                customDecks.forEach((d: Deck) => {
-                    allWords = [...allWords, ...d.words];
-                });
+            // Add words from custom decks
+            if (customDecks) {
+                customDecks.forEach((d) => allWords.push(...d.words));
             }
-
-            // Shuffle all words
-            for (let i = allWords.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [allWords[i], allWords[j]] = [allWords[j], allWords[i]];
-            }
-
-            // Pick 10
-            const mixedWords = allWords.slice(0, 10);
-
-            // Create a temporary deck object for this game
-            deckToPlay = { ...currentDeck, words: mixedWords };
+        } else {
+            allWords = [...currentDeck.words];
         }
 
-        const secretWord =
-            deckToPlay.words[Math.floor(Math.random() * deckToPlay.words.length)];
+        // Shuffle words pool
+        for (let i = allWords.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [allWords[i], allWords[j]] = [allWords[j], allWords[i]];
+        }
 
-        // Create initial roles pool
+        const secretWord = allWords[Math.floor(Math.random() * allWords.length)];
+
+        // --- ROLE ASSIGNMENT LOGIC (Fisher-Yates) ---
         const roles: PlayerRoleString[] = [];
+        // Fill roles array
         for (let i = 0; i < playerCount; i++) {
             roles.push(i < impostorCount ? "Impostor" : "Civil");
         }
 
-        // Fisher-Yates Shuffle for absolute randomness
+        // Shuffle roles array
         for (let i = roles.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            const temp = roles[i];
-            roles[i] = roles[j];
-            roles[j] = temp;
+            [roles[i], roles[j]] = [roles[j], roles[i]];
         }
 
         const players: Player[] = roles.map((role, index) => ({
@@ -101,12 +96,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
             secretWord: role === "Civil" ? secretWord : null,
         }));
 
+        // --- STARTING PLAYER LOGIC ---
+        // Pick a completely random player index to start
+        const startingIndex = Math.floor(Math.random() * players.length);
+        const startingPlayerName = players[startingIndex].name;
+
         set({
             players,
             gamePhase: "reveal",
             currentPlayerIndex: 0,
             winner: null,
-            timerSeconds: 180,
+            timerSeconds: timerDuration,
+            startingPlayerName,
         });
     },
 
@@ -115,7 +116,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
         if (currentPlayerIndex < playerCount - 1) {
             set({ currentPlayerIndex: currentPlayerIndex + 1 });
         } else {
-            set({ gamePhase: "playing" });
+            // Instead of going straight to playing, we rely on the UI to check gamePhase
+            // But actually, 'finishReveal' sets it to 'playing'.
+            // nextPlayer just moves the index forward during the reveal phase.
+            // When index reaches end, we stay on reveal until 'finishReveal' is called?
+            // No, the original logic was:
+            // render RoleReveal for index. On 'next', increment index.
+            // If index was last, set gamePhase = playing.
+
+            // Wait, we need to show the "Who Starts" screen.
+            // So we shouldn't set "playing" yet.
+            // We can add a new phase "who_starts"? Or just handle it in the UI.
+            // Let's keep data simple. We'll verify this flow.
         }
     },
 
@@ -129,14 +141,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
         }));
     },
 
-    setWinner: (winner: "Civiles" | "Impostor") => set({ winner, gamePhase: "result" }),
+    setWinner: (winner) => set({ winner, gamePhase: "result" }),
 
     resetGame: () =>
-        set({
+        set((state) => ({
             gamePhase: "config",
             players: [],
             currentPlayerIndex: 0,
             winner: null,
-            playerNames: [],
-        }),
+            playerNames: state.playerNames, // Keep names
+            startingPlayerName: null,
+            timerSeconds: state.timerDuration,
+        })),
 }));
