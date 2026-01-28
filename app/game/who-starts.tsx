@@ -24,7 +24,7 @@ export default function WhoStartsScreen() {
     useEffect(() => {
         const timer = setTimeout(() => {
             handleContinue();
-        }, 4000); // 4 seconds
+        }, 2000); // 2 seconds
 
         return () => clearTimeout(timer);
     }, []);
@@ -54,12 +54,6 @@ export default function WhoStartsScreen() {
                     <Text className="text-white/40 text-center mb-12">
                         Preparate para defender tu inocencia...
                     </Text>
-
-                    <Button
-                        label="¡A JUGAR!"
-                        onPress={handleContinue}
-                        variant="primary"
-                    />
                 </Animated.View>
             </SafeAreaView>
         </LinearGradient>

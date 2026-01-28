@@ -74,7 +74,9 @@ export const useGameStore = create<GameState>((set, get) => ({
             [allWords[i], allWords[j]] = [allWords[j], allWords[i]];
         }
 
-        const secretWord = allWords[Math.floor(Math.random() * allWords.length)];
+        // Limit to 30 words if it's the mix deck
+        const finalWordsPool = currentDeck.id === "deck_mix" ? allWords.slice(0, 30) : allWords;
+        const secretWord = finalWordsPool[Math.floor(Math.random() * finalWordsPool.length)];
 
         // --- ROLE ASSIGNMENT LOGIC (Fisher-Yates) ---
         const roles: PlayerRoleString[] = [];

@@ -107,7 +107,7 @@ export const DeckCard: React.FC<DeckCardProps> = ({
                             <View className="flex-row items-center mb-0.5">
                                 {isSelected && <Sparkles size={12} color="white" className="mr-1" />}
                                 <Text className={`font-black tracking-[3px] text-[9px] uppercase ${isSelected ? "text-white/70" : "text-primary/60"}`}>
-                                    {deck.words.length} PALABRAS
+                                    {deck.id === "deck_mix" ? "30" : deck.words.length} PALABRAS
                                 </Text>
                             </View>
                             <Text
@@ -188,7 +188,7 @@ export const DeckCard: React.FC<DeckCardProps> = ({
                         </Text>
                         <View className="flex-row items-center bg-black/5 self-start px-4 py-2 rounded-full">
                             <Text className={`font-bold mr-2 text-xs ${isSelected ? "text-white" : "text-primary"}`}>
-                                {deck.words.length} PALABRAS
+                                {deck.id === "deck_mix" ? "30" : deck.words.length} PALABRAS
                             </Text>
                             <Info size={12} color={isSelected ? "white" : COLORS.primary.DEFAULT} opacity={0.5} />
                         </View>

@@ -101,17 +101,6 @@ export default function Home() {
                             Desconfiá de{"\n"}
                             <Text className="text-primary">tus amigos.</Text>
                         </MotiText>
-                        <MotiView
-                            from={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 500 }}
-                            className="flex-row items-center mt-4 bg-primary/5 self-start px-4 py-2 rounded-full"
-                        >
-                            <TrendingUp size={14} color={COLORS.primary.DEFAULT} className="mr-2" />
-                            <Text className="text-primary/70 font-black text-[10px] uppercase tracking-widest">
-                                #1 JUEGO DE PREVIA EN ARGENTINA
-                            </Text>
-                        </MotiView>
                     </View>
 
                     {/* Deck Carousel */}

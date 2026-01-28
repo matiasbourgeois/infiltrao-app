@@ -101,7 +101,7 @@ export default function GameRound() {
                                 <Text className="text-gray-900 text-xl font-black tracking-tight">Reglas</Text>
                             </View>
                             <Text className="text-gray-500 font-bold leading-6">
-                                Hagan preguntas. Al terminar el tiempo, <Text className="text-primary">negocien</Text> para descubrir al <Text className="text-secondary">Infiltrao</Text>. ¡Es un juego de debate y engaño!
+                                Empieza el jugador designado. Luego, en ronda, cada uno dice una palabra relacionada (el <Text className="text-secondary">Infiltrao</Text> debe disimular que sabe la palabra). Al terminar el tiempo, <Text className="text-primary">debatan y voten</Text> para encontrarlo.
                             </Text>
                         </View>
 
